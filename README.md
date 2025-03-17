@@ -13,3 +13,9 @@ execute `go build -o main`
 #### Run agent
 
 execute `sudo ./main`
+
+
+
+#### Note
+
+We are not tracing if signal is zero, because it's not a kill attempt, I am considerin signal 23 as a kill attempt becuase it does pause the process and might kill it eventually.
