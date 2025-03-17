@@ -45,6 +45,4 @@ Kill signals that we are tracing (we can add more if needed):
 
 #### Demo Screenshot
 
-<p align="center">
-  <img src="images/agent.png" width="400">
-</p>
+![Demo Screenshot](images/agent.png)
