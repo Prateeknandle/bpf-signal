@@ -44,7 +44,9 @@ int BPF_PROG(task_kill, struct task_struct *p, struct kernel_siginfo *info, int 
     // since we only needed to trace kill attempts by other processes (as mentioned in the problem statement)
     // therefore skipping tracing if process is killed by itself
     // also confirmed with ashish about skipping blocking agent killed by itself for eg - ctrl + c
-    if (evt.src_pid == evt.target_pid) {
+    // not skipping sig - 23 (it doesn't terminate but can be considered an kill attempt, bcz it pause the process)
+    // sig - 0 not a kill attempt, so skipping it
+    if (evt.src_pid == evt.target_pid || evt.sig == 0) {
         return 0;
     }
 
