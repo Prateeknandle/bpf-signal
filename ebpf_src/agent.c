@@ -5,6 +5,17 @@
 #include <bpf/bpf_core_read.h>
 #include <linux/errno.h>
 
+#define SIGKILL 9
+#define SIGTERM 15
+#define SIGQUIT 3
+#define SIGABRT 6
+#define SIGHUP 1
+#define SIGINT 2
+#define SIGSTOP 19
+#define SIGTSTP 20
+#define SIGTTIN 21
+#define SIGTTOU 22
+
 struct event {
     u32 src_pid;
     u32 target_pid;
@@ -44,13 +55,12 @@ int BPF_PROG(task_kill, struct task_struct *p, struct kernel_siginfo *info, int 
     // since we only needed to trace kill attempts by other processes (as mentioned in the problem statement)
     // therefore skipping tracing if process is killed by itself
     // also confirmed with ashish about skipping blocking agent killed by itself for eg - ctrl + c
-    // not skipping sig - 23 (it doesn't terminate but can be considered an kill attempt, bcz it pause the process)
-    // sig - 0 not a kill attempt, so skipping it
-    if (evt.src_pid == evt.target_pid || evt.sig == 0) {
+    if (evt.src_pid == evt.target_pid) {
         return 0;
     }
 
-    if (agent_pid_ptr && *agent_pid_ptr == evt.target_pid ) {
+    // adding condition here specifically to trace if signal is of a kill attempt
+    if (agent_pid_ptr && *agent_pid_ptr == evt.target_pid && (sig == SIGKILL || sig == SIGTERM || sig == SIGQUIT || sig == SIGABRT || sig == SIGHUP || sig == SIGINT || sig == SIGSTOP || sig == SIGTSTP || sig == SIGTTIN || sig == SIGTTIN) ) {
         evt.blocked = 1;
         // signal was not asked but just tracing for my understanding
         bpf_printk("Kill attempt targeting agent detected: source PID %d attempting to kill agent PID %d with signal %d",
@@ -59,14 +69,15 @@ int BPF_PROG(task_kill, struct task_struct *p, struct kernel_siginfo *info, int 
         bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
         return -EPERM; // block the kill attempt for agent
     }
+    
+    // adding condition here specifically to trace if signal is of a kill attempt
+    if (sig == SIGKILL || sig == SIGTERM || sig == SIGQUIT || sig == SIGABRT || sig == SIGHUP || sig == SIGINT || sig == SIGSTOP || sig == SIGTSTP || sig == SIGTTIN || sig == SIGTTIN) {
+        bpf_printk("Kill attempt detected: source PID %d attempting to kill target PID %d with signal %d",
+            evt.src_pid, evt.target_pid, evt.sig);
 
-
-    bpf_printk("Kill attempt detected: source PID %d attempting to kill target PID %d with signal %d",
-        evt.src_pid, evt.target_pid, evt.sig);
-
-    // sending kill event info to userspace
-    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
-
+        bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
+    }
+    
 	return 0;
 }
 
