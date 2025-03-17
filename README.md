@@ -41,3 +41,10 @@ Kill signals that we are tracing (we can add more if needed):
 9. `SIGTTIN`	21	Stops a background process trying to read input.
 
 10. `SIGTTOU`	22	Stops a background process trying to write output.
+
+
+#### Demo Screenshot
+
+<p align="center">
+  <img src="images/agent.png" width="400">
+</p>
